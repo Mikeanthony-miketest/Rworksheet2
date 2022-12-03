@@ -1,7 +1,6 @@
-
-  #MIKE ANTHONY TALTAL BSIT2-A 
-  #CS101-DATA SCIENCE
-  #INDIVIDUAL_PROJECT1
+#MIKE ANTHONY TALTAL BSIT2-A 
+#CS101-DATA SCIENCE
+#INDIVIDUAL_PROJECT1
   
  
 library("twitteR") 
@@ -18,6 +17,8 @@ library(wordcloud)
 library(wordcloud2)
 library(corpus)
 
+#1.Extract from twitter using your developers credentials.Choose any keyword 
+#you want.
 CONSUMER_SECRET <- "5fikcIfYieq3Yqaqf80fLRJLITCg10eRSXgUBHkhZa836WnP35"
 CONSUMER_KEY <- "mOxonIhWeeb3aT8uKahOJESZB"
 ACCESS_SECRET <- "ZAfXCkfu9PFoneXvhWPGaBrn4VwNcsV9Q5pHhGdyrTF9N"
@@ -29,7 +30,7 @@ setup_twitter_oauth(consumer_key = CONSUMER_KEY,
                     access_token = ACCESS_TOKEN,
                     access_secret = ACCESS_SECRET)
 
-#1.Get 10000 observations "excluding retweets".
+#2.Get 10000 observations "excluding retweets".
 tweethere <- searchTwitter("BLACKPINK -filter:retweets",
                            n = 10000,
                            lang = "en",
@@ -49,7 +50,7 @@ load("TWEETIT.Rdata")
 
 
 
-#2.Plot the time series from the date created. with legends. 
+#3.Plot the time series from the date created. with legends. 
 ggplot(data = TWEETIT, aes(x = created)) +
   geom_histogram(aes(fill = ..count..)) +
   theme(legend.position = "right") +
@@ -58,7 +59,7 @@ ggplot(data = TWEETIT, aes(x = created)) +
  
 
 
-#3.lot a graph (any graph you want)  based on the type of device_
+#4.lot a graph (any graph you want)  based on the type of device_
 #found in Source - that the user use. Include the legends.
 
 encodeSource <- function(x) {
@@ -112,3 +113,18 @@ ggplot(dataDF,aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3,
   theme(legend.position = "right")
 
 #5. Create a word cloud from the screenName
+tweet_appScreen <- TWEETIT %>%
+  select(screenName) %>%
+  group_by(screenName) %>%
+  summarize(count=n()) %>%
+  arrange(desc(count)) 
+
+#convert to Corpus
+namesCorpus <- Corpus(VectorSource(TWEETIT$screenName))
+
+#Running the code using the wordcloud()
+wordcloud2(data=tweet_appScreen, 
+           size=0.8, 
+           color='random-light',
+           shape = 'pentagon')
+
