@@ -1,0 +1,149 @@
+---
+title: "Individual Project 1"
+author: "Mike Anthony Taltal"
+date: "2022-12-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library("twitteR") 
+library(dplyr)
+library(tidyr)
+library("plotly")
+library(ggplot2)
+library(RColorBrewer)
+library(tidytext)
+library(rtweet)
+library(tm)
+library(slam)
+library(wordcloud)
+library(wordcloud2)
+library(corpus)
+```
+
+1.Extract from twitter using your developers credentials.Choose any keyword 
+you want.
+```{r}
+CONSUMER_SECRET <- "5fikcIfYieq3Yqaqf80fLRJLITCg10eRSXgUBHkhZa836WnP35"
+CONSUMER_KEY <- "mOxonIhWeeb3aT8uKahOJESZB"
+ACCESS_SECRET <- "ZAfXCkfu9PFoneXvhWPGaBrn4VwNcsV9Q5pHhGdyrTF9N"
+ACCESS_TOKEN <- "1595030186000470017-QRGI98lJnYgTt56G5yqMrrdSmHSMxU"
+
+
+setup_twitter_oauth(consumer_key = CONSUMER_KEY,
+                    consumer_secret = CONSUMER_SECRET,
+                    access_token = ACCESS_TOKEN,
+                    access_secret = ACCESS_SECRET)
+```
+
+
+2.Get 10000 observations "excluding retweets".
+```{r}
+tweethere <- searchTwitter("BLACKPINK -filter:retweets",
+                           n = 10000,
+                           lang = "en",
+                           since = "2022-11-19",
+                           until = "2022-11-30",
+                           retryOnRateLimit= 120) 
+
+```
+from list to data frame conversion
+```{r}
+TWEETIT <- twListToDF(tweethere)
+TWEETIT
+View(TWEETIT)
+
+
+save("TWEETIT", file = "TWEETIT.Rdata")
+load("TWEETIT.Rdata")
+
+```
+
+3.Plot the time series from the date created. with legends. 
+```{r}
+ggplot(data = TWEETIT, aes(x = created)) +
+  geom_histogram(aes(fill = ..count..)) +
+  theme(legend.position = "right") +
+  xlab("Time") + ylab("The Time Series of Blackpink") + 
+  scale_fill_gradient(low = "midnightblue", high = "aquamarine4")
+```
+
+4.lot a graph (any graph you want)  based on the type of device_
+found in Source - that the user use. Include the legends.
+```{r}
+encodeSource <- function(x) {
+  if(grepl(">Twitter for iPhone</a>", x)){
+    "Iphone"
+  }else if(grepl(">Twitter for iPad</a>", x)){
+    "Ipad"
+  }else if(grepl(">Twitter for Android</a>", x)){
+    "Android"
+  } else if(grepl(">Twitter Web Client</a>", x)){
+    "Web"
+  } else if(grepl(">Twitter for Windows Phone</a>", x)){
+    "Windows phone"
+  }else if(grepl(">dlvr.it</a>", x)){
+    "dlvr.it"
+  }else if(grepl(">IFTTT</a>", x)){
+    "ifttt"
+  }else if(grepl(">Facebook</a>", x)){  #This looks unreliable...
+    "Facebook"
+  }else {
+    "Others"
+  }
+}
+
+```
+```{r}
+TWEETIT$tweetSource = sapply (TWEETIT$statusSource, 
+                              encodeSource)
+tweet_appSource <- TWEETIT %>% 
+  select(tweetSource) %>%
+  group_by(tweetSource) %>%
+  summarize(count=n()) %>%
+  arrange(desc(count)) 
+Source_subset <- subset(tweet_appSource,count >10)
+
+dataDF <- data.frame(
+  category = tweet_appSource$tweetSource,
+  count = tweet_appSource$count
+)
+dataDF$fraction = dataDF$count / sum(dataDF$count)
+dataDF$percentage = dataDF$count / sum(dataDF$count) * 100
+dataDF$ymax = cumsum(dataDF$fraction)
+dataDF$ymin = c(0, head(dataDF$ymax, n=-1))
+dataDF$roundP = round(dataDF$percentage, digits = 2)
+```
+```{r}
+ggplot(dataDF,aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, 
+                  fill=category)) +
+  geom_rect() +
+  coord_polar(theta="y") + 
+  xlim(c(2, 4)) +
+  theme_void() +
+  theme(legend.position = "right")
+```
+
+5. Create a word cloud from the screenName
+```{r}
+tweet_appScreen <- TWEETIT %>%
+  select(screenName) %>%
+  group_by(screenName) %>%
+  summarize(count=n()) %>%
+  arrange(desc(count)) 
+```
+
+convert to Corpus
+```{r}
+namesCorpus <- Corpus(VectorSource(TWEETIT$screenName))
+```
+Running the code using the wordcloud()
+```{r}
+wordcloud2(data=tweet_appScreen, 
+           size=0.8, 
+           color='random-light',
+           shape = 'pentagon')
+```
